@@ -23,9 +23,9 @@ variable "notification_email" {
 }
 
 variable "couple_email" {
-  description = "Email shown to guests in confirmation emails"
+  description = "Sender (from) address for guest confirmation & notification emails — must be an SES-verified identity"
+  default     = "rahulharshinivelpur@gmail.com"
   type        = string
-  default     = "rahulreddy0120@gmail.com"
 }
 
 variable "admin_password_hash" {
