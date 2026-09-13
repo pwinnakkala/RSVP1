@@ -114,6 +114,10 @@ export default function RSVPSection() {
       const data = await res.json();
       if (res.ok && data.success) {
         setSubmitState("success");
+        // Bring the confirmation into view (the page is often scrolled down here)
+        requestAnimationFrame(() => {
+          document.getElementById("rsvp")?.scrollIntoView({ behavior: "smooth", block: "start" });
+        });
       } else {
         console.error("RSVP error:", data);
         setSubmitState("error");
