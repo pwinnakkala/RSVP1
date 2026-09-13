@@ -10,12 +10,11 @@ const dressCodes = [
     instruction: "Festive Indian wear, or party wear — a suit works great for men. Go bold — this is the party night that kicks off the celebrations!",
     colors: [
       { name: "Midnight Navy", hex: "#0D1B4B" },
-      { name: "Champagne", hex: "#D4AF37" },
       { name: "Emerald", hex: "#004D40" },
       { name: "Deep Burgundy", hex: "#880E4F" },
       { name: "Black", hex: "#1A1A1A" },
     ],
-    avoid: "Casual or overly casual outfits",
+    avoid: "Casual or overly casual outfits, and ivory (reserved for the bride)",
     tip: "Heels & dress shoes recommended — it's a glam night. Thursday Nov 12.",
   },
   {
@@ -44,8 +43,8 @@ const dressCodes = [
       { name: "Teal", hex: "#0D9488" },
       { name: "Coral", hex: "#FF6F5E" },
     ],
-    avoid: "Heavy bridal colours (red, maroon), and pink or parrot green (reserved for the bride)",
-    tip: "Mehendi — Friday evening Nov 13. Pre-Wedding (Pellikuthuru & Pellikoduku) — Saturday evening Nov 14. Comfortable flats recommended, lots of dancing!",
+    avoid: "Pink or parrot green (reserved for the bride)",
+    tip: "Mehendi — Friday evening Nov 13. Pre-Wedding (Pellikuthuru & Pellikoduku) — Saturday evening Nov 14.",
   },
   {
     event: "☀️ Haldi",

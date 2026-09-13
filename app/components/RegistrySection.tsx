@@ -151,7 +151,7 @@ export default function RegistrySection() {
           className="mt-12 italic"
           style={{ color: "rgba(201,168,76,0.6)", fontFamily: "'Cormorant Garamond', serif", fontWeight: 300 }}
         >
-          You may also bring a card to any of the celebrations, or reach out to us directly. Thank you for your love. 🐶
+          Thank you for your love. 🐶
         </motion.p>
       </div>
 

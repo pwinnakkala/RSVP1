@@ -166,7 +166,7 @@ export default function CountdownSection() {
             fontSize: "clamp(1.25rem, 3.5vw, 1.75rem)",
           }}
         >
-          Save the date and join us in Texas
+          Save the date and join us!
         </motion.p>
       </div>
     </section>

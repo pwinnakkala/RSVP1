@@ -27,7 +27,7 @@ const events: Event[] = [
     id: "sangeeth",
     emoji: "✨",
     name: "SANGEETH",
-    subtitle: "Dance · Music · Celebration",
+    subtitle: "Dance · Music · Cocktails",
     date: "Thursday, November 12, 2026",
     time: "Evening",
     venue: "TBD, Texas",
@@ -78,7 +78,7 @@ const events: Event[] = [
     id: "mehendi",
     emoji: "🤚",
     name: "MEHENDI",
-    subtitle: "Music · Henna · Cocktails",
+    subtitle: "Music · Henna",
     date: "Friday, November 13, 2026",
     time: "Evening",
     venue: "TBD, Texas",
@@ -103,7 +103,7 @@ const events: Event[] = [
     id: "haldi",
     emoji: "☀️",
     name: "HALDI",
-    subtitle: "Turmeric · Traditions · Sunshine",
+    subtitle: "Turmeric · Traditions · Cocktails",
     date: "Saturday, November 14, 2026",
     time: "Noon",
     venue: "TBD, Texas",
@@ -188,7 +188,7 @@ export default function EventsSection() {
           className="tracking-[0.3em] text-xs mb-4"
           style={{ color: "#C9A84C", fontFamily: "'Lato', sans-serif", fontWeight: 300 }}
         >
-          6 CELEBRATIONS · 2 FAMILIES · 1 FOREVER
+          6 CELEBRATIONS · 2 FAMILIES
         </p>
         <h2
           className="gold-text"
@@ -261,14 +261,13 @@ export default function EventsSection() {
               </p>
               <div className="mt-auto">
                 <p
-                  className="text-xs tracking-wider mb-1"
-                  style={{ color: event.accent, fontFamily: "'Lato', sans-serif", fontWeight: 300 }}
+                  className="tracking-wider mb-1"
+                  style={{ color: event.accent, fontFamily: "'Lato', sans-serif", fontWeight: 500, fontSize: "clamp(0.95rem, 2.4vw, 1.15rem)" }}
                 >
                   {event.date}
                 </p>
                 <p
-                  className="text-xs"
-                  style={{ color: event.textColor, fontFamily: "'Lato', sans-serif", fontWeight: 300, opacity: 0.7 }}
+                  style={{ color: event.textColor, fontFamily: "'Lato', sans-serif", fontWeight: 400, fontSize: "clamp(0.85rem, 2vw, 1rem)", opacity: 0.85, letterSpacing: "0.08em" }}
                 >
                   {event.time}
                 </p>

@@ -216,7 +216,7 @@ export default function HeroSection() {
               className="tracking-[0.25em] text-sm"
               style={{ color: "#C9A84C", fontFamily: "'Lato', sans-serif", fontWeight: 300 }}
             >
-              NOVEMBER 2026 · TEXAS
+              NOVEMBER 2026
             </p>
 
             <motion.a
