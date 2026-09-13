@@ -127,7 +127,7 @@ export default function HeroSection() {
             className="text-sm tracking-[0.3em] mb-8"
             style={{ color: "#C9A84C", fontFamily: "'Lato', sans-serif", fontWeight: 300 }}
           >
-            శుభమస్తు · గోవిందా హరి గోవిందా · SHUBHAMASTU
+            ॐ · శ్రీరస్తు శుభమస్తు · ॐ
           </motion.p>
         )}
 

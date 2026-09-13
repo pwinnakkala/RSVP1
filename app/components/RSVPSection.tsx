@@ -4,7 +4,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface GuestEntry {
-  name: string;
+  adults: number;
+  kids: number;
   sangeeth: boolean;
   engagement: boolean;
   mehendi: boolean;
@@ -24,7 +25,8 @@ interface FormData {
 }
 
 const defaultGuest = (): GuestEntry => ({
-  name: "",
+  adults: 1,
+  kids: 0,
   sangeeth: false,
   engagement: false,
   mehendi: false,
@@ -57,11 +59,22 @@ export default function RSVPSection() {
   const [submitState, setSubmitState] = useState<SubmitState>("idle");
   const [validationError, setValidationError] = useState("");
 
-  const updateGuest = (index: number, field: keyof GuestEntry, value: string | boolean) => {
+  const updateGuest = (index: number, field: keyof GuestEntry, value: number | boolean) => {
     if (validationError) setValidationError("");
     setForm((prev) => {
       const guests = [...prev.guests];
       guests[index] = { ...guests[index], [field]: value };
+      return { ...prev, guests };
+    });
+  };
+
+  const adjustCount = (index: number, field: "adults" | "kids", delta: number) => {
+    setForm((prev) => {
+      const guests = [...prev.guests];
+      const current = guests[index][field];
+      const min = field === "adults" ? 1 : 0;
+      const next = Math.max(min, Math.min(20, current + delta));
+      guests[index] = { ...guests[index], [field]: next };
       return { ...prev, guests };
     });
   };
@@ -91,9 +104,7 @@ export default function RSVPSection() {
     );
     if (guestWithNoEvent !== -1) {
       setValidationError(
-        `Please select at least one event for ${
-          form.guests[guestWithNoEvent].name?.trim() || `Guest ${guestWithNoEvent + 1}`
-        }.`
+        `Please select at least one event for Guest ${guestWithNoEvent + 1}.`
       );
       return;
     }
@@ -312,14 +323,55 @@ export default function RSVPSection() {
                         )}
                       </div>
 
-                      <input
-                        required
-                        type="text"
-                        placeholder={i === 0 ? "Your name" : "Guest name"}
-                        value={guest.name}
-                        onChange={(e) => updateGuest(i, "name", e.target.value)}
-                        style={{ ...inputStyle, marginBottom: "1rem" }}
-                      />
+                      {/* Adults & Kids counters */}
+                      <div className="grid grid-cols-2 gap-3" style={{ marginBottom: "1rem" }}>
+                        {(["adults", "kids"] as const).map((field) => (
+                          <div
+                            key={field}
+                            className="flex items-center justify-between p-3"
+                            style={{ border: "1px solid rgba(201,168,76,0.2)", background: "rgba(201,168,76,0.03)" }}
+                          >
+                            <span
+                              className="text-xs tracking-[0.12em]"
+                              style={{ color: "#C9A84C", fontFamily: "'Lato', sans-serif", fontWeight: 300, textTransform: "uppercase" }}
+                            >
+                              {field}
+                            </span>
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => adjustCount(i, field, -1)}
+                                aria-label={`Decrease ${field}`}
+                                style={{
+                                  width: "1.9rem", height: "1.9rem", lineHeight: 1,
+                                  border: "1px solid rgba(201,168,76,0.4)", color: "#C9A84C",
+                                  background: "transparent", cursor: "pointer", fontSize: "1.1rem",
+                                }}
+                              >
+                                −
+                              </button>
+                              <span
+                                style={{ color: "#FAF6EE", fontFamily: "'Cormorant Garamond', serif", fontSize: "1.2rem", minWidth: "1.2rem", textAlign: "center" }}
+                              >
+                                {guest[field]}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => adjustCount(i, field, 1)}
+                                aria-label={`Increase ${field}`}
+                                style={{
+                                  width: "1.9rem", height: "1.9rem", lineHeight: 1,
+                                  border: "1px solid rgba(201,168,76,0.4)", color: "#C9A84C",
+                                  background: "transparent", cursor: "pointer", fontSize: "1.1rem",
+                                }}
+                              >
+                                +
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
 
                       {/* Event checkboxes */}
                       <p

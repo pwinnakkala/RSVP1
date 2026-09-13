@@ -205,7 +205,9 @@
     body.innerHTML = sorted.map((r) => {
       const guests = (r.guests || []).map((g) => {
         const evs = EVENTS.filter((e) => g[e]).map((e) => `<span class="chip">${evLabel(e)}</span>`).join("");
-        return `<div style="margin-bottom:6px;">◆ ${esc(g.name || "Guest")}<div class="chips" style="margin-top:3px;">${evs}</div></div>`;
+        const kids = Number(g.kids || 0);
+        const party = `${Number(g.adults || 0)} adult(s)` + (kids ? `, ${kids} kid(s)` : "");
+        return `<div style="margin-bottom:6px;">◆ ${esc(party)}<div class="chips" style="margin-top:3px;">${evs}</div></div>`;
       }).join("");
       const extras = [
         r.dietary ? `<div><small>Dietary:</small> ${esc(r.dietary)}</div>` : "",
@@ -226,12 +228,16 @@
 
   function exportCsv() {
     if (!currentData || !currentData.rsvps) return;
-    const rows = [["Primary Name", "Email", "Phone", "Guest Count", "Guests", "Sangeeth", "Engagement", "Mehendi", "Haldi", "Pre-Wedding", "Wedding", "Dietary", "Song Request", "Message", "Submitted At"]];
+    const rows = [["Primary Name", "Email", "Phone", "Total Guests", "Adults", "Kids", "Party Breakdown", "Sangeeth", "Engagement", "Mehendi", "Haldi", "Pre-Wedding", "Wedding", "Dietary", "Song Request", "Message", "Submitted At"]];
     currentData.rsvps.forEach((r) => {
       const ev = r.events || {};
+      const gs = r.guests || [];
+      const adults = gs.reduce((s, g) => s + Number(g.adults || 0), 0);
+      const kids = gs.reduce((s, g) => s + Number(g.kids || 0), 0);
+      const breakdown = gs.map((g) => `${Number(g.adults || 0)}A${Number(g.kids || 0) ? "+" + Number(g.kids) + "K" : ""}`).join("; ");
       rows.push([
-        r.primaryName || "", r.email || "", r.phone || "", r.guestCount || 0,
-        (r.guests || []).map((g) => g.name).join("; "),
+        r.primaryName || "", r.email || "", r.phone || "", r.guestCount || (adults + kids),
+        adults, kids, breakdown,
         ev.sangeeth || 0, ev.engagement || 0, ev.mehendi || 0, ev.haldi || 0, ev.prewedding || 0, ev.wedding || 0,
         r.dietary || "", r.songRequest || "", (r.message || "").replace(/\n/g, " "), r.submittedAt || "",
       ]);
