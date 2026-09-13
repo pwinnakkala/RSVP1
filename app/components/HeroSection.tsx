@@ -124,8 +124,8 @@ export default function HeroSection() {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.2 }}
-            className="text-sm tracking-[0.3em] mb-8"
-            style={{ color: "#C9A84C", fontFamily: "'Lato', sans-serif", fontWeight: 300 }}
+            className="tracking-[0.2em] mb-5"
+            style={{ color: "#C9A84C", fontFamily: "'Cinzel', serif", fontWeight: 400, fontSize: "clamp(1.2rem, 3.5vw, 2rem)" }}
           >
             ॐ · శ్రీరస్తు శుభమస్తు · ॐ
           </motion.p>

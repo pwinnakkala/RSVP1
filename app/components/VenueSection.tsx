@@ -30,7 +30,7 @@ export default function VenueSection() {
   return (
     <section
       id="venue"
-      className="py-28 px-6 relative overflow-hidden"
+      className="py-16 px-6 relative overflow-hidden"
       style={{ background: "linear-gradient(180deg, #0A0A0A 0%, #0F0800 100%)" }}
     >
       {/* Dot pattern */}

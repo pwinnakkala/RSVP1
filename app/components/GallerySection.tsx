@@ -29,7 +29,7 @@ export default function GallerySection() {
   return (
     <section
       id="gallery"
-      className="py-28 px-6 relative overflow-hidden"
+      className="py-16 px-6 relative overflow-hidden"
       style={{ background: "var(--ivory)" }}
     >
       <div

@@ -38,7 +38,7 @@ export default function OurStorySection() {
   return (
     <section
       id="story"
-      className="py-28 px-6 relative overflow-hidden"
+      className="py-16 px-6 relative overflow-hidden"
       style={{ background: "linear-gradient(180deg, var(--ivory) 0%, var(--ivory-dark) 100%)" }}
     >
       {/* Subtle mandala watermark */}

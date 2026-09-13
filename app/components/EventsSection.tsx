@@ -173,7 +173,7 @@ export default function EventsSection() {
   return (
     <section
       id="events"
-      className="py-28 px-6 relative"
+      className="py-16 px-6 relative"
       style={{ background: "#0A0A0A" }}
     >
       {/* Header */}

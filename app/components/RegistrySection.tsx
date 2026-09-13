@@ -22,7 +22,7 @@ export default function RegistrySection() {
   return (
     <section
       id="registry"
-      className="py-28 px-6 relative overflow-hidden"
+      className="py-16 px-6 relative overflow-hidden"
       style={{ background: "linear-gradient(180deg, #0F0800 0%, #0A0A0A 100%)" }}
     >
       {/* Top border */}

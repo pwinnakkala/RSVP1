@@ -79,12 +79,6 @@ export default function RSVPSection() {
     });
   };
 
-  const addGuest = () => {
-    if (form.guests.length < 8) {
-      setForm((prev) => ({ ...prev, guests: [...prev.guests, defaultGuest()] }));
-    }
-  };
-
   const removeGuest = (index: number) => {
     if (form.guests.length > 1) {
       setForm((prev) => ({
@@ -155,7 +149,7 @@ export default function RSVPSection() {
   return (
     <section
       id="rsvp"
-      className="py-28 px-6 relative"
+      className="py-16 px-6 relative"
       style={{ background: "linear-gradient(180deg, #0A0A0A 0%, #0F0800 100%)" }}
     >
       <div
@@ -251,7 +245,7 @@ export default function RSVPSection() {
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label style={labelStyle}>PRIMARY NAME *</label>
+                    <label style={labelStyle}>PRIMARY GUEST NAME *</label>
                     <input
                       required
                       type="text"
@@ -291,10 +285,16 @@ export default function RSVPSection() {
                 style={{ border: "1px solid rgba(201,168,76,0.2)", background: "rgba(201,168,76,0.03)" }}
               >
                 <p
-                  className="text-xs tracking-[0.25em] mb-6"
+                  className="text-xs tracking-[0.25em] mb-2"
                   style={{ color: "#C9A84C", fontFamily: "'Lato', sans-serif", fontWeight: 300 }}
                 >
                   ATTENDING GUESTS
+                </p>
+                <p
+                  className="italic mb-6"
+                  style={{ color: "#E8D5A3", fontFamily: "'Cormorant Garamond', serif", fontWeight: 300, fontSize: "0.98rem", opacity: 0.85 }}
+                >
+                  So… who&rsquo;s tagging along? Tell us your crew — adults, little ones, and all! 🎉
                 </p>
 
                 <div className="space-y-6">
@@ -424,24 +424,6 @@ export default function RSVPSection() {
                     </div>
                   ))}
                 </div>
-
-                {form.guests.length < 8 && (
-                  <button
-                    type="button"
-                    onClick={addGuest}
-                    className="mt-4 text-xs tracking-[0.15em] px-4 py-2 transition-all duration-300"
-                    style={{
-                      border: "1px solid rgba(201,168,76,0.3)",
-                      color: "#C9A84C",
-                      fontFamily: "'Lato', sans-serif",
-                      fontWeight: 300,
-                      background: "transparent",
-                      cursor: "pointer",
-                    }}
-                  >
-                    + ADD ANOTHER GUEST
-                  </button>
-                )}
               </div>
 
               {/* Additional info */}
