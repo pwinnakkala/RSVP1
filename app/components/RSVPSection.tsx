@@ -324,26 +324,25 @@ export default function RSVPSection() {
                       </div>
 
                       {/* Adults & Kids counters */}
-                      <div className="grid grid-cols-2 gap-3" style={{ marginBottom: "1rem" }}>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3" style={{ marginBottom: "0.5rem" }}>
                         {(["adults", "kids"] as const).map((field) => (
                           <div
                             key={field}
-                            className="flex items-center justify-between p-3"
+                            className="flex items-center justify-between gap-2 p-3"
                             style={{ border: "1px solid rgba(201,168,76,0.2)", background: "rgba(201,168,76,0.03)" }}
                           >
                             <span
-                              className="text-xs tracking-[0.12em]"
-                              style={{ color: "#C9A84C", fontFamily: "'Lato', sans-serif", fontWeight: 300, textTransform: "uppercase" }}
+                              style={{ color: "#C9A84C", fontFamily: "'Lato', sans-serif", fontWeight: 300, fontSize: "0.72rem", letterSpacing: "0.08em", textTransform: "uppercase" }}
                             >
-                              {field}
+                              {field === "adults" ? "Adults (incl. you)" : "Kids"}
                             </span>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 shrink-0">
                               <button
                                 type="button"
                                 onClick={() => adjustCount(i, field, -1)}
                                 aria-label={`Decrease ${field}`}
                                 style={{
-                                  width: "1.9rem", height: "1.9rem", lineHeight: 1,
+                                  width: "2rem", height: "2rem", lineHeight: 1, flexShrink: 0,
                                   border: "1px solid rgba(201,168,76,0.4)", color: "#C9A84C",
                                   background: "transparent", cursor: "pointer", fontSize: "1.1rem",
                                 }}
@@ -351,7 +350,7 @@ export default function RSVPSection() {
                                 −
                               </button>
                               <span
-                                style={{ color: "#FAF6EE", fontFamily: "'Cormorant Garamond', serif", fontSize: "1.2rem", minWidth: "1.2rem", textAlign: "center" }}
+                                style={{ color: "#FAF6EE", fontFamily: "'Cormorant Garamond', serif", fontSize: "1.2rem", minWidth: "1.4rem", textAlign: "center" }}
                               >
                                 {guest[field]}
                               </span>
@@ -360,7 +359,7 @@ export default function RSVPSection() {
                                 onClick={() => adjustCount(i, field, 1)}
                                 aria-label={`Increase ${field}`}
                                 style={{
-                                  width: "1.9rem", height: "1.9rem", lineHeight: 1,
+                                  width: "2rem", height: "2rem", lineHeight: 1, flexShrink: 0,
                                   border: "1px solid rgba(201,168,76,0.4)", color: "#C9A84C",
                                   background: "transparent", cursor: "pointer", fontSize: "1.1rem",
                                 }}
@@ -371,7 +370,11 @@ export default function RSVPSection() {
                           </div>
                         ))}
                       </div>
-
+                      <p
+                        style={{ color: "rgba(201,168,76,0.55)", fontFamily: "'Lato', sans-serif", fontWeight: 300, fontSize: "0.62rem", letterSpacing: "0.05em", marginBottom: "1rem" }}
+                      >
+                        Count yourself in the adults total.
+                      </p>
 
                       {/* Event checkboxes */}
                       <p
