@@ -5,7 +5,7 @@ Description: Harshini & Rahul wedding site - S3, CloudFront, API Gateway, Lambda
 Parameters:
   ProjectName:
     Type: String
-    Default: harshini-rahul-wedding
+    Default: praveen-rsvp
   NotificationEmail:
     Type: String
     Description: Receives a notification for every RSVP
@@ -29,7 +29,7 @@ Resources:
   SiteBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${ProjectName}-site-${AWS::AccountId}"
+      BucketName: !Sub "${ProjectName}-s3-site-${AWS::AccountId}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -41,7 +41,7 @@ Resources:
   MediaBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${ProjectName}-media-${AWS::AccountId}"
+      BucketName: !Sub "${ProjectName}-s3-media-${AWS::AccountId}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -59,7 +59,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      BucketName: !Sub "${ProjectName}-rsvp-backup-${AWS::AccountId}"
+      BucketName: !Sub "${ProjectName}-s3-backup-${AWS::AccountId}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -106,7 +106,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      TableName: !Sub "${ProjectName}-rsvps"
+      TableName: !Sub "${ProjectName}-dynamodb-rsvps"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - { AttributeName: rsvpId, AttributeType: S }
@@ -129,7 +129,7 @@ Resources:
     DeletionPolicy: Retain
     UpdateReplacePolicy: Retain
     Properties:
-      TableName: !Sub "${ProjectName}-guests"
+      TableName: !Sub "${ProjectName}-dynamodb-guests"
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - { AttributeName: inviteCode, AttributeType: S }
@@ -154,7 +154,7 @@ Resources:
   RsvpFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: !Sub "${ProjectName}-rsvp"
+      FunctionName: !Sub "${ProjectName}-lambda"
       CodeUri: lambda/
       Handler: rsvp_handler.handler
       Runtime: python3.12
@@ -205,7 +205,7 @@ Resources:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: !Sub "${ProjectName}-site-oac"
+        Name: !Sub "${ProjectName}-cloudfront-site-oac"
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
@@ -214,7 +214,7 @@ Resources:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: !Sub "${ProjectName}-media-oac"
+        Name: !Sub "${ProjectName}-cloudfront-media-oac"
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4
@@ -223,7 +223,7 @@ Resources:
     Type: AWS::CloudFront::CachePolicy
     Properties:
       CachePolicyConfig:
-        Name: !Sub "${ProjectName}-static-cache"
+        Name: !Sub "${ProjectName}-cloudfront-cache"
         MinTTL: 0
         DefaultTTL: 86400
         MaxTTL: 31536000
@@ -237,7 +237,7 @@ Resources:
   RewriteFunction:
     Type: AWS::CloudFront::Function
     Properties:
-      Name: !Sub "${ProjectName}-dir-index-rewrite"
+      Name: !Sub "${ProjectName}-cloudfront-rewrite"
       AutoPublish: true
       FunctionConfig:
         Comment: Rewrite directory paths (e.g. /admin) to /index.html

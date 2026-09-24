@@ -18,7 +18,7 @@ Parameters:
     Description: Required only when CreateOidcProvider is false
   ProjectName:
     Type: String
-    Default: harshini-rahul-wedding
+    Default: praveen-rsvp
 
 Conditions:
   MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
@@ -34,7 +34,7 @@ Resources:
   ArtifactBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${ProjectName}-cfn-artifacts-${AWS::AccountId}"
+      BucketName: !Sub "${ProjectName}-s3-artifacts-${AWS::AccountId}"
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true

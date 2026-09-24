@@ -18,7 +18,7 @@ concurrency:
 
 env:
   AWS_REGION: us-east-1
-  STACK_NAME: harshini-rahul-wedding
+  STACK_NAME: praveen-rsvp
 
 jobs:
   infra:
@@ -50,7 +50,7 @@ jobs:
         working-directory: infra
         run: |
           ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-          ARTIFACT_BUCKET="harshini-rahul-wedding-cfn-artifacts-$ACCOUNT_ID"
+          ARTIFACT_BUCKET="praveen-rsvp-s3-artifacts-$ACCOUNT_ID"
           aws cloudformation package \
             --template-file wedding.yaml \
             --s3-bucket "$ARTIFACT_BUCKET" \
