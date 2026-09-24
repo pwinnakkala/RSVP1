@@ -7,6 +7,14 @@ Parameters:
   GitHubRepo:
     Type: String
     Description: GitHub repo allowed to deploy, in owner/name form
+  GitHubOwnerId:
+    Type: String
+    Default: "333038193"
+    Description: Numeric GitHub owner ID (GitHub now puts IDs in the OIDC subject claim)
+  GitHubRepoId:
+    Type: String
+    Default: "1383962453"
+    Description: Numeric GitHub repo ID
   CreateOidcProvider:
     Type: String
     Default: "true"
@@ -59,7 +67,14 @@ Resources:
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
               StringLike:
-                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
+                token.actions.githubusercontent.com:sub:
+                  - !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
+                  - !Sub
+                    - "repo:${Owner}@${OwnerId}/${Repo}@${RepoId}:ref:refs/heads/main"
+                    - Owner: !Select [0, !Split ["/", !Ref GitHubRepo]]
+                      Repo: !Select [1, !Split ["/", !Ref GitHubRepo]]
+                      OwnerId: !Ref GitHubOwnerId
+                      RepoId: !Ref GitHubRepoId
       Policies:
         - PolicyName: deploy
           PolicyDocument:
