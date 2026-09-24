@@ -151,8 +151,21 @@ Resources:
       EmailIdentity: !Ref CoupleEmail
 
   # ── Lambda + HTTP API ───────────────────────────────────────────────────────
+  RsvpLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ProjectName}-lambda"
+      RetentionInDays: 1
+
+  ApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/aws/apigateway/${ProjectName}-api"
+      RetentionInDays: 1
+
   RsvpFunction:
     Type: AWS::Serverless::Function
+    DependsOn: RsvpLogGroup
     Properties:
       FunctionName: !Sub "${ProjectName}-lambda"
       CodeUri: lambda/
@@ -194,6 +207,9 @@ Resources:
   HttpApi:
     Type: AWS::Serverless::HttpApi
     Properties:
+      AccessLogSettings:
+        DestinationArn: !GetAtt ApiLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","time":"$context.requestTime","method":"$context.httpMethod","path":"$context.path","status":"$context.status"}'
       CorsConfiguration:
         AllowOrigins: ["*"]
         AllowMethods: [GET, POST, OPTIONS]
@@ -262,7 +278,8 @@ Resources:
         IPV6Enabled: true
         Comment: praveen-rsvp
         DefaultRootObject: index.html
-        PriceClass: PriceClass_100
+        PriceClass: PriceClass_All
+        HttpVersion: http2and3
         Origins:
           - Id: S3-site
             DomainName: !GetAtt SiteBucket.RegionalDomainName
