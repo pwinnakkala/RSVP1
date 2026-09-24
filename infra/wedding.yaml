@@ -1,0 +1,324 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Harshini & Rahul wedding site - S3, CloudFront, API Gateway, Lambda, DynamoDB, SES
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: harshini-rahul-wedding
+  NotificationEmail:
+    Type: String
+    Description: Receives a notification for every RSVP
+  CoupleEmail:
+    Type: String
+    Description: Sender address for emails (SES-verified)
+  AdminPasswordHash:
+    Type: String
+    NoEcho: true
+    Description: SHA-256 hex of the host admin password
+  AuthSecret:
+    Type: String
+    NoEcho: true
+    Description: Random secret used to sign admin session tokens
+
+Conditions:
+  SeparateCoupleIdentity: !Not [!Equals [!Ref NotificationEmail, !Ref CoupleEmail]]
+
+Resources:
+  # ── S3 buckets ──────────────────────────────────────────────────────────────
+  SiteBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-site-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  MediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-media-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ["*"]
+            AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ["*"]
+            MaxAge: 3000
+
+  BackupBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub "${ProjectName}-rsvp-backup-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      VersioningConfiguration:
+        Status: Enabled
+
+  SiteBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref SiteBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub "${SiteBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+  MediaBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref MediaBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowCloudFrontOAC
+            Effect: Allow
+            Principal: { Service: cloudfront.amazonaws.com }
+            Action: s3:GetObject
+            Resource: !Sub "${MediaBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                "AWS:SourceArn": !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${Distribution}"
+
+  # ── DynamoDB ────────────────────────────────────────────────────────────────
+  RsvpTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${ProjectName}-rsvps"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: rsvpId, AttributeType: S }
+        - { AttributeName: submittedAt, AttributeType: S }
+        - { AttributeName: email, AttributeType: S }
+      KeySchema:
+        - { AttributeName: rsvpId, KeyType: HASH }
+        - { AttributeName: submittedAt, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - { AttributeName: email, KeyType: HASH }
+            - { AttributeName: submittedAt, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  GuestTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub "${ProjectName}-guests"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: inviteCode, AttributeType: S }
+      KeySchema:
+        - { AttributeName: inviteCode, KeyType: HASH }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # ── SES sender identities (each needs a one-time email verification click) ──
+  NotificationIdentity:
+    Type: AWS::SES::EmailIdentity
+    Properties:
+      EmailIdentity: !Ref NotificationEmail
+
+  CoupleIdentity:
+    Type: AWS::SES::EmailIdentity
+    Condition: SeparateCoupleIdentity
+    Properties:
+      EmailIdentity: !Ref CoupleEmail
+
+  # ── Lambda + HTTP API ───────────────────────────────────────────────────────
+  RsvpFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${ProjectName}-rsvp"
+      CodeUri: lambda/
+      Handler: rsvp_handler.handler
+      Runtime: python3.12
+      Timeout: 30
+      MemorySize: 256
+      Environment:
+        Variables:
+          RSVP_TABLE: !Ref RsvpTable
+          GUEST_TABLE: !Ref GuestTable
+          BACKUP_BUCKET: !Ref BackupBucket
+          NOTIFICATION_EMAIL: !Ref NotificationEmail
+          COUPLE_EMAIL: !Ref CoupleEmail
+          ADMIN_PASSWORD_HASH: !Ref AdminPasswordHash
+          AUTH_SECRET: !Ref AuthSecret
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref RsvpTable }
+        - DynamoDBCrudPolicy: { TableName: !Ref GuestTable }
+        - S3WritePolicy: { BucketName: !Ref BackupBucket }
+        - Statement:
+            - Effect: Allow
+              Action: [ses:SendEmail, ses:SendRawEmail]
+              Resource: "*"
+      Events:
+        Rsvp:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /api/rsvp, Method: POST }
+        Login:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /api/login, Method: POST }
+        List:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /api/rsvps, Method: GET }
+        Health:
+          Type: HttpApi
+          Properties: { ApiId: !Ref HttpApi, Path: /api/health, Method: GET }
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins: ["*"]
+        AllowMethods: [GET, POST, OPTIONS]
+        AllowHeaders: [Content-Type, Authorization]
+        MaxAge: 86400
+
+  # ── CloudFront ──────────────────────────────────────────────────────────────
+  SiteOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${ProjectName}-site-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  MediaOac:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${ProjectName}-media-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  StaticCachePolicy:
+    Type: AWS::CloudFront::CachePolicy
+    Properties:
+      CachePolicyConfig:
+        Name: !Sub "${ProjectName}-static-cache"
+        MinTTL: 0
+        DefaultTTL: 86400
+        MaxTTL: 31536000
+        ParametersInCacheKeyAndForwardedToOrigin:
+          EnableAcceptEncodingGzip: true
+          EnableAcceptEncodingBrotli: true
+          CookiesConfig: { CookieBehavior: none }
+          HeadersConfig: { HeaderBehavior: none }
+          QueryStringsConfig: { QueryStringBehavior: none }
+
+  RewriteFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub "${ProjectName}-dir-index-rewrite"
+      AutoPublish: true
+      FunctionConfig:
+        Comment: Rewrite directory paths (e.g. /admin) to /index.html
+        Runtime: cloudfront-js-2.0
+      FunctionCode: |
+        function handler(event) {
+          var request = event.request;
+          var uri = request.uri;
+          if (uri.endsWith('/')) {
+            request.uri = uri + 'index.html';
+          } else if (!uri.includes('.')) {
+            request.uri = uri + '/index.html';
+          }
+          return request;
+        }
+
+  Distribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        IPV6Enabled: true
+        Comment: Harshini & Rahul Wedding Site
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: S3-site
+            DomainName: !GetAtt SiteBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt SiteOac.Id
+            S3OriginConfig: { OriginAccessIdentity: "" }
+          - Id: S3-media
+            DomainName: !GetAtt MediaBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt MediaOac.Id
+            S3OriginConfig: { OriginAccessIdentity: "" }
+          - Id: APIGW-rsvp
+            DomainName: !Sub "${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+            CustomOriginConfig:
+              OriginProtocolPolicy: https-only
+              OriginSSLProtocols: [TLSv1.2]
+        DefaultCacheBehavior:
+          TargetOriginId: S3-site
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD]
+          CachedMethods: [GET, HEAD]
+          CachePolicyId: !Ref StaticCachePolicy
+          Compress: true
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt RewriteFunction.FunctionMetadata.FunctionARN
+        CacheBehaviors:
+          - PathPattern: /media/*
+            TargetOriginId: S3-media
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            CachePolicyId: !Ref StaticCachePolicy
+            Compress: true
+          - PathPattern: /api/*
+            TargetOriginId: APIGW-rsvp
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD, OPTIONS, PUT, PATCH, POST, DELETE]
+            CachedMethods: [GET, HEAD]
+            CachePolicyId: 4135ea2d-6df8-44a3-9df3-4b5a84be39ad
+            OriginRequestPolicyId: b689b0a8-53d0-40ab-baf2-68738e2966ac
+            Compress: true
+        CustomErrorResponses:
+          - { ErrorCode: 404, ResponseCode: 200, ResponsePagePath: /index.html }
+          - { ErrorCode: 403, ResponseCode: 200, ResponsePagePath: /index.html }
+        Restrictions:
+          GeoRestriction: { RestrictionType: none }
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+
+Outputs:
+  CloudFrontUrl:
+    Value: !Sub "https://${Distribution.DomainName}"
+  DistributionId:
+    Value: !Ref Distribution
+  SiteBucket:
+    Value: !Ref SiteBucket
+  MediaBucket:
+    Value: !Ref MediaBucket
+  ApiEndpoint:
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"

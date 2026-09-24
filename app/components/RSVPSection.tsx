@@ -106,7 +106,7 @@ export default function RSVPSection() {
     setSubmitState("submitting");
 
     try {
-      const res = await fetch("https://5e21pxysa4.execute-api.us-east-1.amazonaws.com/api/rsvp", {
+      const res = await fetch("/api/rsvp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),

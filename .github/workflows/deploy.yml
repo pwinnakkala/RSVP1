@@ -1,14 +1,13 @@
 name: Deploy to AWS
 
-# Runs on every commit to main: applies Terraform, then builds and
-# deploys the static site to S3 + invalidates CloudFront.
+# Every push to main builds the site, uploads it to S3 and invalidates CloudFront.
+# The CloudFormation stack is only updated when files under infra/ change.
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-# Required for GitHub OIDC → AWS role assumption
 permissions:
   id-token: write
   contents: read
@@ -19,18 +18,26 @@ concurrency:
 
 env:
   AWS_REGION: us-east-1
-  TF_VAR_aws_profile: "" # CI uses ambient OIDC creds, not a named profile
+  STACK_NAME: harshini-rahul-wedding
 
 jobs:
-  terraform:
-    name: Terraform Apply
+  infra:
+    name: CloudFormation Deploy
     runs-on: ubuntu-latest
-    outputs:
-      site_bucket: ${{ steps.tf_out.outputs.site_bucket }}
-      cloudfront_id: ${{ steps.tf_out.outputs.cloudfront_id }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Detect infra changes
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || \
+             git diff --name-only HEAD~1 HEAD | grep -q '^infra/'; then
+            echo "infra=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "infra=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -38,48 +45,41 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.9.8"
-
-      - name: Terraform Init
-        working-directory: infra
-        run: terraform init -input=false
-
-      - name: Terraform Apply
-        working-directory: infra
-        env:
-          TF_VAR_admin_password_hash: ${{ secrets.TF_VAR_ADMIN_PASSWORD_HASH }}
-          TF_VAR_auth_secret: ${{ secrets.TF_VAR_AUTH_SECRET }}
-        run: terraform apply -input=false -auto-approve
-
-      - name: Export Terraform outputs
-        id: tf_out
+      - name: Package and deploy stack
+        if: steps.changes.outputs.infra == 'true'
         working-directory: infra
         run: |
-          echo "site_bucket=$(terraform output -raw site_bucket)" >> "$GITHUB_OUTPUT"
-          echo "cloudfront_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          ARTIFACT_BUCKET="harshini-rahul-wedding-cfn-artifacts-$ACCOUNT_ID"
+          aws cloudformation package \
+            --template-file wedding.yaml \
+            --s3-bucket "$ARTIFACT_BUCKET" \
+            --output-template-file packaged.yaml
+          aws cloudformation deploy \
+            --template-file packaged.yaml \
+            --stack-name "$STACK_NAME" \
+            --capabilities CAPABILITY_IAM CAPABILITY_AUTO_EXPAND \
+            --no-fail-on-empty-changeset \
+            --parameter-overrides \
+              NotificationEmail="${{ secrets.NOTIFICATION_EMAIL }}" \
+              CoupleEmail="${{ secrets.COUPLE_EMAIL }}" \
+              AdminPasswordHash="${{ secrets.ADMIN_PASSWORD_HASH }}" \
+              AuthSecret="${{ secrets.AUTH_SECRET }}"
 
   deploy-site:
     name: Build & Deploy Site
-    needs: terraform
+    needs: infra
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
+      - run: npm ci
+      - run: npm run build
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -87,16 +87,24 @@ jobs:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
+      - name: Look up stack outputs
+        id: out
+        run: |
+          q() { aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='$1'].OutputValue" --output text; }
+          echo "bucket=$(q SiteBucket)" >> "$GITHUB_OUTPUT"
+          echo "dist=$(q DistributionId)" >> "$GITHUB_OUTPUT"
+
       - name: Sync static assets (long cache)
         run: |
-          aws s3 sync out/ "s3://${{ needs.terraform.outputs.site_bucket }}/" \
+          aws s3 sync out/ "s3://${{ steps.out.outputs.bucket }}/" \
             --delete \
             --cache-control "public, max-age=31536000, immutable" \
             --exclude "*.html" --exclude "*.json"
 
       - name: Sync HTML & JSON (no cache)
         run: |
-          aws s3 sync out/ "s3://${{ needs.terraform.outputs.site_bucket }}/" \
+          aws s3 sync out/ "s3://${{ steps.out.outputs.bucket }}/" \
             --delete \
             --cache-control "public, max-age=0, must-revalidate" \
             --exclude "*" --include "*.html" --include "*.json"
@@ -104,5 +112,5 @@ jobs:
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
-            --distribution-id "${{ needs.terraform.outputs.cloudfront_id }}" \
+            --distribution-id "${{ steps.out.outputs.dist }}" \
             --paths "/*"

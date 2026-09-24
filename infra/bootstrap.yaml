@@ -1,0 +1,88 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  One-time bootstrap (deploy by hand with admin credentials). Creates the GitHub
+  Actions OIDC role and the artifact bucket used to package the Lambda code.
+
+Parameters:
+  GitHubRepo:
+    Type: String
+    Description: GitHub repo allowed to deploy, in owner/name form
+  CreateOidcProvider:
+    Type: String
+    Default: "true"
+    AllowedValues: ["true", "false"]
+    Description: Set to false if the GitHub OIDC provider already exists in this account
+  ExistingOidcProviderArn:
+    Type: String
+    Default: ""
+    Description: Required only when CreateOidcProvider is false
+  ProjectName:
+    Type: String
+    Default: harshini-rahul-wedding
+
+Conditions:
+  MakeProvider: !Equals [!Ref CreateOidcProvider, "true"]
+
+Resources:
+  GitHubOidcProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: MakeProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList: [sts.amazonaws.com]
+
+  ArtifactBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${ProjectName}-cfn-artifacts-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  GitHubActionsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "${ProjectName}-github-actions"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - MakeProvider
+                - !Ref GitHubOidcProvider
+                - !Ref ExistingOidcProviderArn
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+              StringLike:
+                token.actions.githubusercontent.com:sub: !Sub "repo:${GitHubRepo}:ref:refs/heads/main"
+      Policies:
+        - PolicyName: deploy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cloudformation:*
+                  - s3:*
+                  - cloudfront:*
+                  - lambda:*
+                  - apigateway:*
+                  - dynamodb:*
+                  - ses:*
+                  - logs:*
+                Resource: "*"
+              - Effect: Allow
+                Action: iam:*
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ProjectName}-*"
+
+Outputs:
+  GitHubActionsRoleArn:
+    Description: Put this in the GitHub secret AWS_ROLE_ARN
+    Value: !GetAtt GitHubActionsRole.Arn
+  ArtifactBucket:
+    Value: !Ref ArtifactBucket
