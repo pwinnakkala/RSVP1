@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: Harshini & Rahul wedding site - S3, CloudFront, API Gateway, Lambda, DynamoDB, SES
+Description: praveen-rsvp - S3, CloudFront, API Gateway, Lambda, DynamoDB, SES
 
 Parameters:
   ProjectName:
@@ -260,7 +260,7 @@ Resources:
       DistributionConfig:
         Enabled: true
         IPV6Enabled: true
-        Comment: Harshini & Rahul Wedding Site
+        Comment: praveen-rsvp
         DefaultRootObject: index.html
         PriceClass: PriceClass_100
         Origins:
