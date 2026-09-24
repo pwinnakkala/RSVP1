@@ -44,7 +44,7 @@ Resources:
   GitHubActionsRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub "${ProjectName}-github-actions"
+      RoleName: praveen-rsvp-service-role
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
